@@ -9,5 +9,11 @@ public interface LevelDBWrapper {
 
     String get(String key);
 
-    void batch(List<Operation> operations);
+    /**
+     * 针对操作列表实现批操作，可以将operations视为一个事务
+     *
+     * @param operations 操作列表
+     * @return 所有Get操作获得的结果的列表，其顺序与operations顺序相符
+     */
+    List<String> batch(List<Operation> operations);
 }

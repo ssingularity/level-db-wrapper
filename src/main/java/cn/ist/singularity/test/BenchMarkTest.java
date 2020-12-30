@@ -16,6 +16,6 @@ public class BenchMarkTest {
         operationList.add(OperationFactory.get("test"));
         operationList.add(OperationFactory.delete("test"));
         operationList.add(OperationFactory.get("test"));
-        levelDB.batch(operationList);
+        levelDB.batch(operationList).forEach(System.out::println);
     }
 }
