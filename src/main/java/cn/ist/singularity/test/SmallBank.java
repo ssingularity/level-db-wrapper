@@ -57,8 +57,7 @@ public class SmallBank {
             }
         });
     }
-
-
+    
     public static void main(String [] args) {
         // Connect to LevelDB
         LevelDBWrapper db = new BaseLevelDBWrapper(DBPath);
