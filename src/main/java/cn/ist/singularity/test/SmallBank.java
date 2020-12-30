@@ -18,50 +18,88 @@ public class SmallBank {
         List<Operation> operations = new ArrayList<>();
         final Integer numCustomers = 2000;
         final Random r = new Random();
-        for (Integer i = 0; i != numCustomers; ++i) {
+        for (Integer i = 1; !numCustomers.equals(i); ++i) {
             Integer saving = r.nextInt(100000);
             operations.add(OperationFactory.put(i.toString(), saving.toString()));
         }
         db.batch(operations);
     }
 
-    private static void doOps(LevelDBWrapper db) {
+    /*
+     * generate a sequence of 10 PUT operations and 10 GET operations
+     */
+    private static List<Operation> doOps() {
         List<Operation> operations = new ArrayList<>();
         final Integer limit = 20;
-        for (Integer i = 10; i != limit; ++i) {
+        for (Integer i = 10; !limit.equals(i); ++i) {
             Integer newSaving = 20201230;
             operations.add(OperationFactory.put(i.toString(), newSaving.toString()));
         }
-        for (Integer i = 10; i != limit; ++i) {
+        for (Integer i = 10; !limit.equals(i); ++i) {
             operations.add(OperationFactory.get(i.toString()));
         }
+        /*
         db.batch(operations).forEach((String ret) -> {
             if (! ret.isEmpty()) {
                 System.out.println("Operator 1: GET " + ret);
             }
         } );
+         */
+        return operations;
     }
 
-    private static void doOps2(LevelDBWrapper db) {
+    /*
+     * Generate a sequence of 24 operations,
+     * GET interleaves with PUT， 10 for each
+     */
+    private static List<Operation> doOps2() {
         List<Operation> operations = new ArrayList<>();
         final Integer limit = 20;
-        for (Integer i = 8; i != limit; ++i) {
+        for (Integer i = 8; !limit.equals(i); ++i) {
             operations.add(OperationFactory.get(i.toString()));
             Integer j = i + 4;
             Integer newSaving = 20210101;
             operations.add(OperationFactory.put(j.toString(), newSaving.toString()));
         }
+        return operations;
+        /*
         db.batch(operations).forEach((String ret) -> {
             if (! ret.isEmpty()) {
                 System.out.println("Operator 2: GET " + ret);
             }
         });
+         */
     }
-    
+
+    private static class Job implements Runnable {
+        private final String name;
+        private LevelDBWrapper db;
+        private List<Operation> operations;
+
+
+        public Job(String _name, LevelDBWrapper _db, List<Operation> _ops) {
+            name = _name;
+            db = _db;
+            operations = _ops;
+        }
+
+        @Override
+        public void run() {
+            db.batch(operations).forEach((String ret) -> {
+                if (!ret.isEmpty()) {
+                    synchronized (SmallBank.class) {
+                        System.out.println(name + " : GET " + ret);
+                    }
+                }
+            });
+        }
+    }
+
     public static void main(String [] args) {
         // Connect to LevelDB
         LevelDBWrapper db = new BaseLevelDBWrapper(DBPath);
 
+        db_init(db);
         // Create threads to simulate different operator
         ExecutorService executor = Executors.newFixedThreadPool(NumOperator);
         /*
@@ -87,14 +125,16 @@ public class SmallBank {
 
         // TODO: benchmark
 
-        Future<Object> future1 = executor.submit(() -> {
-            doOps(db);
-            return null;
-        } );
-        Future<Object> future2 =  executor.submit(() -> {
-            doOps2(db);
-            return null;
-        });
+        Job job1 = new Job("Job 1", db, doOps());
+        Job job2 = new Job("Job 2", db, doOps2());
+
+        executor.execute(job1);
+        executor.execute(job2);
+
+        executor.shutdown();
+        /*
+        Future<Object> future1 = executor.submit(job1);
+        Future<Object> future2 = executor.submit(job2);
 
         try {
             Object s1 = future1.get();
@@ -110,5 +150,6 @@ public class SmallBank {
         }
 
         // executor.shutdown();
+         */
     }
 }
