@@ -7,7 +7,7 @@ public interface LevelDBWrapper {
 
     void delete(String key);
 
-    void get(String key);
+    String get(String key);
 
     void batch(List<Operation> operations);
 }
