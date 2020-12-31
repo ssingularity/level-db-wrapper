@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
@@ -109,28 +110,120 @@ public class SmallBank {
         return Operations.of(ops);
     }
 
+    /*
+     * generate a list of transactions - 1
+     */
+    private static List<Operations> genTransactions1() {
+        List<Operations> txns = new ArrayList<>();
+        txns.add(Operations.of(
+                OperationFactory.get("1"),
+                OperationFactory.put("1", "18960231")
+        ));
+        txns.add(Operations.of(
+                OperationFactory.get("2"),
+                OperationFactory.get("3"),
+                OperationFactory.put("2", "18961313"),
+                OperationFactory.put("3", "18961414")
+        ));
+        txns.add(Operations.of(
+                OperationFactory.get("5"),
+                OperationFactory.put("5", "18960303"),
+                OperationFactory.get("5")
+        ));
+        txns.add(Operations.of(
+                OperationFactory.put("10", "18961010"),
+                OperationFactory.put("11", "18961111"),
+                OperationFactory.put("12", "18961212")
+        ));
+        return txns;
+    }
+
+    /*
+     * generate a list of transactions - 2
+     * race with 1, but no dead lock
+     */
+    private static List<Operations> genTransactions2() {
+        List<Operations> txns = new ArrayList<>();
+        txns.add(Operations.of(
+                OperationFactory.get("6"),
+                OperationFactory.put("6", "20201231")
+        ));
+        txns.add(Operations.of(
+                OperationFactory.get("4"),
+                OperationFactory.get("2"),
+                OperationFactory.put("2", "20200909"),
+                OperationFactory.put("4", "20201010")
+        ));
+        txns.add(Operations.of(
+                OperationFactory.get("7"),
+                OperationFactory.put("7", "20200501"),
+                OperationFactory.get("7")
+        ));
+        txns.add(Operations.of(
+                OperationFactory.put("14", "20200601"),
+                OperationFactory.put("13", "20200701"),
+                OperationFactory.put("12", "20200801")
+        ));
+        return txns;
+    }
+
+    /*
+     * generate a list of transactions - 3
+     * It is possible to deadlock when running with 1 concurrently
+     */
+    private static List<Operations> genTransactions3() {
+        List<Operations> txns = new ArrayList<>();
+        txns.add(Operations.of(
+                OperationFactory.get("6"),
+                OperationFactory.put("6", "30121231")
+        ));
+        txns.add(Operations.of(
+                OperationFactory.get("3"),
+                OperationFactory.get("2"),
+                OperationFactory.put("2", "30120909"),
+                OperationFactory.put("3", "30121010")
+        ));
+        txns.add(Operations.of(
+                OperationFactory.get("7"),
+                OperationFactory.put("7", "30120501"),
+                OperationFactory.get("7")
+        ));
+        txns.add(Operations.of(
+                OperationFactory.put("13", "30120601"),
+                OperationFactory.put("12", "30120701"),
+                OperationFactory.put("12", "30120801")
+        ));
+        return txns;
+    }
+
     private static class Job implements Callable<String> {
         private final String name;
         private LevelDBWrapper db;
-        private Operations operations;
+        private List<Operations> transactions;
 
 
-        public Job(String _name, LevelDBWrapper _db, Operations _ops) {
+        public Job(String _name, LevelDBWrapper _db, List<Operations> _txns) {
             name = _name;
             db = _db;
-            operations = _ops;
+            transactions = _txns;
         }
 
         @Override
         public String call() {
             Instant beginStamp = Instant.now();
-            db.batch(operations).forEach((String ret) -> {
-                if (!ret.isEmpty()) {
+            Integer counter = 1;
+            for (Iterator<Operations> it = transactions.iterator(); it.hasNext(); ) {
+                db.batch(it.next()).forEach((String ret) -> {
                     synchronized (SmallBank.class) {
-                        System.out.println(name + " : " + ret);
+                        System.out.println(name + ": " + ret);
                     }
+                });
+                synchronized (SmallBank.class) {
+                    System.out.println(name + " Transaction " + counter + " Done\n"
+                            + "---------------------------------------------");
                 }
-            });
+                ++counter;
+            }
             Instant endStamp = Instant.now();
             return name + " Execution Time: "
                     + Duration.between(beginStamp, endStamp).toMillis()
@@ -140,8 +233,8 @@ public class SmallBank {
 
     public static void main(String [] args) {
         // Connect to LevelDB
-        LevelDBWrapper db = new BaseLevelDBWrapper(DBPath);
-        // LevelDBWrapper db = new TwoPLLevelDBWrapper(DBPath);
+        // LevelDBWrapper db = new BaseLevelDBWrapper(DBPath);
+        LevelDBWrapper db = new TwoPLLevelDBWrapper(DBPath);
 
         // Initial database
         db_init(db);
@@ -150,17 +243,21 @@ public class SmallBank {
 
         // TODO: benchmark
 
-        Job job1 = new Job("Job 1", db, genOp1());
-        Job job2 = new Job("Job 2", db, genOp2());
+        Job job1 = new Job("Job 1", db, genTransactions1());
+        Job job2 = new Job("Job 2", db, genTransactions2());
 
+        Instant beginStamp = Instant.now();
+        Instant endStamp;
         Future<String> future1 = executor.submit(job1);
         Future<String> future2 = executor.submit(job2);
 
         try {
             String s1 = future1.get(10000, TimeUnit.MILLISECONDS);
             String s2 = future2.get(10000, TimeUnit.MILLISECONDS);
+            endStamp = Instant.now();
             System.out.println(s1);
             System.out.println(s2);
+            System.out.println("All jobs complete, " + Duration.between(beginStamp, endStamp).toMillis() + "ms elapsed.");
         } catch (TimeoutException e) {
             System.out.println("10000 milliseconds passed, timeout");
             System.out.println("Probably Deadlock.");
