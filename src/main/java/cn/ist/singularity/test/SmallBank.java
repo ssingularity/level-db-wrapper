@@ -1,6 +1,8 @@
 package cn.ist.singularity.test;
 
+import cn.ist.singularity.impl.BaseLevelDBWrapper;
 import cn.ist.singularity.impl.TwoPLLevelDBWrapper;
+import cn.ist.singularity.impl.WoundWaitingLevelDBWrapper;
 import cn.ist.singularity.wrapper.LevelDBWrapper;
 import cn.ist.singularity.wrapper.Operation;
 import cn.ist.singularity.wrapper.OperationFactory;
@@ -8,10 +10,7 @@ import cn.ist.singularity.wrapper.Operations;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class SmallBank {
@@ -83,27 +82,12 @@ public class SmallBank {
     }
 
     /*
-     * 1000 GET[100-1,101-200,300-201,...901-999]
-     * 1000 PUT[1000-1999]
+     * 1000 GET[1000-1]
      */
     private static Operations genOp2() {
         List<Operation> ops = new ArrayList<>();
-        final Integer limit = 1000;
-        Integer setting2 = 20201230;
-        for (Integer i = 0; !i.equals(10); ++i) {
-            if (i % 2 == 0) {
-                for (Integer j = (i + 1) * 100; !j.equals(i * 100); --j) {
-                    ops.add(OperationFactory.get(j.toString()));
-                }
-            }
-            if (i % 2 == 1) {
-                for (Integer j = i * 100 + 1; !j.equals((i + 1) * 100); ++j) {
-                    ops.add(OperationFactory.get(j.toString()));
-                }
-            }
-        }
-        for (Integer i = 1000; !i.equals(2000); ++i) {
-            ops.add(OperationFactory.put(i.toString(), setting2.toString()));
+        for (int i=1000; i>=1; --i) {
+            ops.add(OperationFactory.get(String.valueOf(i)));
         }
         return Operations.of(ops);
     }
@@ -174,6 +158,7 @@ public class SmallBank {
                 OperationFactory.put("6", "30121231")
         ));
         txns.add(Operations.of(
+
                 OperationFactory.get("3"),
                 OperationFactory.get("2"),
                 OperationFactory.put("2", "30120909"),
@@ -229,9 +214,9 @@ public class SmallBank {
 
     public static void main(String [] args) {
         // Connect to LevelDB
-        // LevelDBWrapper db = new BaseLevelDBWrapper(DBPath);
-        LevelDBWrapper db = new TwoPLLevelDBWrapper(DBPath);
-//        LevelDBWrapper db = new WoundWaitingLevelDBWrapper(DBPath);
+//         LevelDBWrapper db = new BaseLevelDBWrapper(DBPath);
+//        LevelDBWrapper db = new TwoPLLevelDBWrapper(DBPath);
+        LevelDBWrapper db = new WoundWaitingLevelDBWrapper(DBPath);
 
         // Initial database
         db_init(db);
@@ -240,8 +225,10 @@ public class SmallBank {
 
         // TODO: benchmark
 
-        Job job1 = new Job("Job 1", db, genBaseTransactions());
-        Job job2 = new Job("Job 2", db, genRaceConditionTransactions());
+//        Job job1 = new Job("Job 1", db, genBaseTransactions());
+//        Job job2 = new Job("Job 2", db, genDeadLockTransactions());
+        Job job1 = new Job("Job 1", db, Arrays.asList(genOp1()));
+        Job job2 = new Job("Job 2", db, Arrays.asList(genOp2()));
 
         Instant beginStamp = Instant.now();
         Instant endStamp;
@@ -258,7 +245,6 @@ public class SmallBank {
         } catch (TimeoutException e) {
             System.out.println("10000 milliseconds passed, timeout");
             System.out.println("Probably Deadlock.");
-            // e.printStackTrace();
         } catch (InterruptedException e) {
             System.out.println("Interrupted");
             e.printStackTrace();
