@@ -2,6 +2,7 @@ package cn.ist.singularity.test;
 
 import cn.ist.singularity.impl.BaseLevelDBWrapper;
 import cn.ist.singularity.impl.TwoPLLevelDBWrapper;
+import cn.ist.singularity.impl.WoundWaitingLevelDBWrapper;
 import cn.ist.singularity.wrapper.LevelDBWrapper;
 import cn.ist.singularity.wrapper.Operation;
 import cn.ist.singularity.wrapper.OperationFactory;
@@ -70,8 +71,9 @@ public class SmallBank {
     /*
      * 1000 PUT[1-1000] + 1000 GET[1-1000]
      */
-    private static Operations genOp1() {
+    private static List<Operations> gen_base_large() {
         List<Operation> ops = new ArrayList<>();
+        List<Operations> ret = new ArrayList<>();
         final Integer limit = 1000;
         Integer setting1 = 18960231;
         for (Integer i = 1; !limit.equals(i); ++i) {
@@ -81,15 +83,17 @@ public class SmallBank {
         for (Integer i = 1; !limit.equals(i); ++i) {
             ops.add(OperationFactory.get(i.toString()));
         }
-        return Operations.of(ops);
+        ret.add(Operations.of(ops));
+        return ret;
     }
 
     /*
      * 1000 GET[100-1,101-200,300-201,...901-999]
      * 1000 PUT[1000-1999]
      */
-    private static Operations genOp2() {
+    private static List<Operations> gen_deadlock_large() {
         List<Operation> ops = new ArrayList<>();
+        List<Operations> ret = new ArrayList<>();
         final Integer limit = 1000;
         Integer setting2 = 20201230;
         for (Integer i = 0; !i.equals(10); ++i) {
@@ -107,13 +111,14 @@ public class SmallBank {
         for (Integer i = 1000; !i.equals(2000); ++i) {
             ops.add(OperationFactory.put(i.toString(), setting2.toString()));
         }
-        return Operations.of(ops);
+        ret.add(Operations.of(ops));
+        return ret;
     }
 
     /*
      * generate a list of transactions - 1
      */
-    private static List<Operations> genTransactions1() {
+    private static List<Operations> genBaseTransactions() {
         List<Operations> txns = new ArrayList<>();
         txns.add(Operations.of(
                 OperationFactory.get("1"),
@@ -142,7 +147,7 @@ public class SmallBank {
      * generate a list of transactions - 2
      * race with 1, but no dead lock
      */
-    private static List<Operations> genTransactions2() {
+    private static List<Operations> genRaceConditionTransactions() {
         List<Operations> txns = new ArrayList<>();
         txns.add(Operations.of(
                 OperationFactory.get("6"),
@@ -171,7 +176,7 @@ public class SmallBank {
      * generate a list of transactions - 3
      * It is possible to deadlock when running with 1 concurrently
      */
-    private static List<Operations> genTransactions3() {
+    private static List<Operations> genDeadLockTransactions() {
         List<Operations> txns = new ArrayList<>();
         txns.add(Operations.of(
                 OperationFactory.get("6"),
@@ -232,10 +237,33 @@ public class SmallBank {
     }
 
     public static void main(String [] args) {
+        if (args.length < 1) {
+            System.err.println("Need one argument!");
+            System.out.println("Argument: 1 - Use Base Level DB Wrapper\n" +
+                    "\t 2 - Use Two Phase Level DB Wrapper\n" +
+                    "\t 3 - Use Wound-Waiting Level DB Wrapper\n");
+            System.exit(-1);
+        }
         // Connect to LevelDB
+        Integer selector = Integer.parseInt(args[0]);
+        LevelDBWrapper db = null;
+        switch (selector) {
+            case 1: db = new BaseLevelDBWrapper(DBPath);
+            break;
+            case 2: db = new TwoPLLevelDBWrapper(DBPath);
+            break;
+            case 3: db = new WoundWaitingLevelDBWrapper(DBPath);
+            break;
+            default: System.err.println("Argument must be 1-3.");
+            System.exit(-1);
+        }
         // LevelDBWrapper db = new BaseLevelDBWrapper(DBPath);
-        LevelDBWrapper db = new TwoPLLevelDBWrapper(DBPath);
+        // LevelDBWrapper db = new TwoPLLevelDBWrapper(DBPath);
+        // LevelDBWrapper db = new WoundWaitingLevelDBWrapper(DBPath);
 
+        if (db == null) {
+            throw new NullPointerException("Database is not initialized.");
+        }
         // Initial database
         db_init(db);
         // Create threads to simulate different operator
@@ -243,13 +271,13 @@ public class SmallBank {
 
         // TODO: benchmark
 
-        Job job1 = new Job("Job 1", db, genTransactions1());
-        Job job2 = new Job("Job 2", db, genTransactions2());
+        Job job1 = new Job("Job 1", db, genBaseTransactions());
+        Job job2 = new Job("Job 2", db, genDeadLockTransactions());
 
         Instant beginStamp = Instant.now();
         Instant endStamp;
-        Future<String> future1 = executor.submit(job1);
         Future<String> future2 = executor.submit(job2);
+        Future<String> future1 = executor.submit(job1);
 
         try {
             String s1 = future1.get(10000, TimeUnit.MILLISECONDS);
