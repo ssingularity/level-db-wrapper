@@ -8,6 +8,7 @@ import org.iq80.leveldb.Options;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.fusesource.leveldbjni.JniDBFactory.factory;
@@ -48,6 +49,10 @@ public class BaseLevelDBWrapper implements LevelDBWrapper {
 
     @Override
     public List<String> batch(Operations operations) {
-        return operations.onVisit(this);
+        List<String> res = new ArrayList<>();
+        operations.forEach(operation -> {
+            res.add(operation.onVisit(this));
+        });
+        return res;
     }
 }

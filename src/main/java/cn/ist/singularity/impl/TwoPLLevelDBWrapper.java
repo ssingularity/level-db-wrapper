@@ -20,11 +20,6 @@ public class TwoPLLevelDBWrapper extends BaseLevelDBWrapper {
             operations.forEach(operation -> {
                 keyLockMap.putIfAbsent(operation.key, new ReentrantLock());
                 keyLockMap.get(operation.key).lock();
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
             });
             List<String> res = super.batch(operations);
             return res;

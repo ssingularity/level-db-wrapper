@@ -2,6 +2,7 @@ package cn.ist.singularity.test;
 
 import cn.ist.singularity.impl.BaseLevelDBWrapper;
 import cn.ist.singularity.impl.TwoPLLevelDBWrapper;
+import cn.ist.singularity.impl.WoundWaitingLevelDBWrapper;
 import cn.ist.singularity.wrapper.LevelDBWrapper;
 import cn.ist.singularity.wrapper.OperationFactory;
 import cn.ist.singularity.wrapper.Operations;
@@ -16,15 +17,20 @@ public class BenchMarkTest {
 
     public static LevelDBWrapper twoPLLevelDB = new TwoPLLevelDBWrapper("E:\\db\\2PL");
 
+    public static LevelDBWrapper woundWaitingLevelDbWrapper = new WoundWaitingLevelDBWrapper("E:\\db\\wound-waiting");
+
     public static void main(String[] args) throws Exception {
-        baseTest(baseLevelDB);
-        baseTest(twoPLLevelDB);
-
-        correctnessTest(baseLevelDB);
-        correctnessTest(twoPLLevelDB);
-
-        deadLockTest(baseLevelDB);
-        deadLockTest(twoPLLevelDB);
+//        baseTest(baseLevelDB);
+//        baseTest(twoPLLevelDB);
+        baseTest(woundWaitingLevelDbWrapper);
+//
+//        correctnessTest(baseLevelDB);
+//        correctnessTest(twoPLLevelDB);
+        correctnessTest(woundWaitingLevelDbWrapper);
+//
+//        deadLockTest(baseLevelDB);
+//        deadLockTest(twoPLLevelDB);
+        deadLockTest(woundWaitingLevelDbWrapper);
 
         System.exit(0);
     }
@@ -66,8 +72,10 @@ public class BenchMarkTest {
         new Thread(futureTask1).start();
         new Thread(futureTask2).start();
         try {
-            futureTask1.get(2000, TimeUnit.MILLISECONDS);
-            futureTask2.get(2000, TimeUnit.MILLISECONDS);
+            futureTask1.get(10000, TimeUnit.MILLISECONDS);
+            futureTask2.get(10000, TimeUnit.MILLISECONDS);
+            futureTask1.get();
+            futureTask2.get();
             System.out.println("Dead Lock Test Pass!");
         }
         catch (Exception e) {

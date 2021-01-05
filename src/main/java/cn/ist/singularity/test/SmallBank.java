@@ -10,7 +10,6 @@ import cn.ist.singularity.wrapper.Operations;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -144,7 +143,6 @@ public class SmallBank {
     }
 
     /*
-     * generate a list of transactions - 2
      * race with 1, but no dead lock
      */
     private static List<Operations> genRaceConditionTransactions() {
@@ -173,7 +171,6 @@ public class SmallBank {
     }
 
     /*
-     * generate a list of transactions - 3
      * It is possible to deadlock when running with 1 concurrently
      */
     private static List<Operations> genDeadLockTransactions() {

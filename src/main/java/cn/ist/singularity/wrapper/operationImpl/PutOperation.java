@@ -2,6 +2,7 @@ package cn.ist.singularity.wrapper.operationImpl;
 
 import cn.ist.singularity.wrapper.LevelDBWrapper;
 import cn.ist.singularity.wrapper.Operation;
+import cn.ist.singularity.wrapper.OperationFactory;
 
 /**
  * @Author: ssingualrity
@@ -13,15 +14,18 @@ public class PutOperation extends Operation {
     public PutOperation(String key, String value) {
         super(key);
         this.value = value;
-        if (value == null) {
-            throw new RuntimeException("值不能为空");
-        }
     }
 
     @Override
     public String onVisit(LevelDBWrapper levelDB) {
         levelDB.put(this.key, this.value);
         return "put " + key + " " + value;
+    }
+
+    @Override
+    public Operation rollBackOperation(LevelDBWrapper levelDB) {
+        String oldValue = levelDB.get(this.key);
+        return OperationFactory.put(this.key, oldValue);
     }
 
     @Override
