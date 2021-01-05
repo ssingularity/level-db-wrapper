@@ -18,6 +18,10 @@ public class WoundWaitingLevelDBWrapper extends BaseLevelDBWrapper{
 
     Random random = new Random();
 
+    public WoundWaitingLevelDBWrapper() {
+        super();
+    }
+
     public WoundWaitingLevelDBWrapper(String filePath) {
         super(filePath);
     }

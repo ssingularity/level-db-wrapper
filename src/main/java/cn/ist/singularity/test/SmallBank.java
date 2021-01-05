@@ -65,18 +65,12 @@ public class SmallBank {
     }
 
     /*
-     * 1000 PUT[1-1000] + 1000 GET[1-1000]
+     * 1000 PUT[1-1000]
      */
     private static Operations genOp1() {
         List<Operation> ops = new ArrayList<>();
-        final Integer limit = 1000;
-        Integer setting1 = 18960231;
-        for (Integer i = 1; !limit.equals(i); ++i) {
-            ops.add(OperationFactory.put(i.toString(), setting1.toString()));
-            ++setting1;
-        }
-        for (Integer i = 1; !limit.equals(i); ++i) {
-            ops.add(OperationFactory.get(i.toString()));
+        for (int i = 1; i<=100000; ++i) {
+            ops.add(OperationFactory.put(String.valueOf(i), "test"));
         }
         return Operations.of(ops);
     }
@@ -86,8 +80,8 @@ public class SmallBank {
      */
     private static Operations genOp2() {
         List<Operation> ops = new ArrayList<>();
-        for (int i=1000; i>=1; --i) {
-            ops.add(OperationFactory.get(String.valueOf(i)));
+        for (int i=100000; i>=1; --i) {
+            ops.add(OperationFactory.put(String.valueOf(i), "test"));
         }
         return Operations.of(ops);
     }
@@ -194,16 +188,17 @@ public class SmallBank {
             Instant beginStamp = Instant.now();
             Integer counter = 1;
             for (Iterator<Operations> it = transactions.iterator(); it.hasNext(); ) {
-                db.batch(it.next()).forEach((String ret) -> {
-                    synchronized (SmallBank.class) {
-                        System.out.println(name + ": " + ret);
-                    }
-                });
-                synchronized (SmallBank.class) {
-                    System.out.println(name + " Transaction " + counter + " Done\n"
-                            + "---------------------------------------------");
-                }
-                ++counter;
+                db.batch(it.next());
+//                db.batch(it.next()).forEach((String ret) -> {
+//                    synchronized (SmallBank.class) {
+//                        System.out.println(name + ": " + ret);
+//                    }
+//                });
+//                synchronized (SmallBank.class) {
+//                    System.out.println(name + " Transaction " + counter + " Done\n"
+//                            + "---------------------------------------------");
+//                }
+//                ++counter;
             }
             Instant endStamp = Instant.now();
             return name + " Execution Time: "
@@ -213,22 +208,23 @@ public class SmallBank {
     }
 
     public static void main(String [] args) {
-        // Connect to LevelDB
 //         LevelDBWrapper db = new BaseLevelDBWrapper(DBPath);
 //        LevelDBWrapper db = new TwoPLLevelDBWrapper(DBPath);
-        LevelDBWrapper db = new WoundWaitingLevelDBWrapper(DBPath);
+//        LevelDBWrapper db = new WoundWaitingLevelDBWrapper(DBPath);
 
-        // Initial database
-        db_init(db);
+//        LevelDBWrapper db = new BaseLevelDBWrapper();
+//        LevelDBWrapper db = new TwoPLLevelDBWrapper();
+        LevelDBWrapper db = new WoundWaitingLevelDBWrapper();
+
         // Create threads to simulate different operator
         ExecutorService executor = Executors.newFixedThreadPool(NumOperator);
 
         // TODO: benchmark
 
 //        Job job1 = new Job("Job 1", db, genBaseTransactions());
-//        Job job2 = new Job("Job 2", db, genDeadLockTransactions());
+//        Job job2 = new Job("Job 2", db, genBaseTransactions());
         Job job1 = new Job("Job 1", db, Arrays.asList(genOp1()));
-        Job job2 = new Job("Job 2", db, Arrays.asList(genOp2()));
+        Job job2 = new Job("Job 2", db, Arrays.asList(genOp1()));
 
         Instant beginStamp = Instant.now();
         Instant endStamp;
