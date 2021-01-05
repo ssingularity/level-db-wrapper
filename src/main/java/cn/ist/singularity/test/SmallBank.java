@@ -231,6 +231,7 @@ public class SmallBank {
         // Connect to LevelDB
         // LevelDBWrapper db = new BaseLevelDBWrapper(DBPath);
         LevelDBWrapper db = new TwoPLLevelDBWrapper(DBPath);
+//        LevelDBWrapper db = new WoundWaitingLevelDBWrapper(DBPath);
 
         // Initial database
         db_init(db);
