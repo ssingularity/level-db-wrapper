@@ -95,19 +95,10 @@ public class SmallBank {
         List<Operations> ret = new ArrayList<>();
         final Integer limit = 1000;
         Integer setting2 = 20201230;
-        for (Integer i = 0; !i.equals(10); ++i) {
-            if (i % 2 == 0) {
-                for (Integer j = (i + 1) * 100; !j.equals(i * 100); --j) {
-                    ops.add(OperationFactory.get(j.toString()));
-                }
-            }
-            if (i % 2 == 1) {
-                for (Integer j = i * 100 + 1; !j.equals((i + 1) * 100); ++j) {
-                    ops.add(OperationFactory.get(j.toString()));
-                }
-            }
+        for (Integer i = limit; !i.equals(0); --i) {
+            ops.add(OperationFactory.get(i.toString()));
         }
-        for (Integer i = 1000; !i.equals(2000); ++i) {
+        for (Integer i = 0; !i.equals(limit); ++i) {
             ops.add(OperationFactory.put(i.toString(), setting2.toString()));
         }
         ret.add(Operations.of(ops));
@@ -268,8 +259,8 @@ public class SmallBank {
 
         // TODO: benchmark
 
-        Job job1 = new Job("Job 1", db, genBaseTransactions());
-        Job job2 = new Job("Job 2", db, genDeadLockTransactions());
+        Job job1 = new Job("Job 1", db, gen_base_large());
+        Job job2 = new Job("Job 2", db, gen_deadlock_large());
 
         Instant beginStamp = Instant.now();
         Instant endStamp;
