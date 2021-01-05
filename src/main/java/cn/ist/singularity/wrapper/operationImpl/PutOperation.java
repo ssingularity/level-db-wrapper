@@ -4,10 +4,6 @@ import cn.ist.singularity.wrapper.LevelDBWrapper;
 import cn.ist.singularity.wrapper.Operation;
 import cn.ist.singularity.wrapper.OperationFactory;
 
-/**
- * @Author: ssingualrity
- * @Date: 2020/12/30 15:59
- */
 public class PutOperation extends Operation {
     private String value;
 
