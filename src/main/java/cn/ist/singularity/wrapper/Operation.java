@@ -11,4 +11,6 @@ public abstract class Operation {
     }
 
     abstract public String onVisit(LevelDBWrapper levelDB);
+
+    abstract public Operation rollBackOperation(LevelDBWrapper levelDB);
 }

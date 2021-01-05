@@ -4,12 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-/**
- * @Author: ssingualrity
- * @Date: 2020/12/30 15:54
- */
 public class Operations {
     private List<Operation> operationList = new ArrayList<>();
 
@@ -36,8 +31,8 @@ public class Operations {
         return res.substring(0, res.length() - 1);
     }
 
-    public List<String> onVisit(LevelDBWrapper levelDB) {
-        return operationList.stream().map(x -> x.onVisit(levelDB)).collect(Collectors.toList());
+    public List<Operation> intern() {
+        return this.operationList;
     }
 
     public void forEach(Consumer<Operation> consumer) {
