@@ -5,6 +5,7 @@ import cn.ist.singularity.wrapper.Operations;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 
@@ -14,6 +15,8 @@ public class WoundWaitingLevelDBWrapper extends BaseLevelDBWrapper{
     Map<String, Semaphore> keyLockMap = new ConcurrentHashMap<>();
 
     Map<String, Transaction> transactionStore = new ConcurrentHashMap<>();
+
+    Random random = new Random();
 
     public WoundWaitingLevelDBWrapper(String filePath) {
         super(filePath);
@@ -26,6 +29,7 @@ public class WoundWaitingLevelDBWrapper extends BaseLevelDBWrapper{
             transactionStore.put(transaction.getId(), transaction);
             List<String> res = transaction.start();
             while (transaction.getStatus() == Transaction.Status.Aborted) {
+                Thread.sleep(random.nextInt(100));
                 res = transaction.start();
             }
             return res;

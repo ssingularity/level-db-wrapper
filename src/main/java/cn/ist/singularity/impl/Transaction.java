@@ -84,7 +84,7 @@ public class Transaction {
     public synchronized void rollback() {
         if (this.status == Status.Running) {
             this.aborted();
-            System.out.println("Thread " + Thread.currentThread().getName() + " Transaction " + this.getId() + " start rollback");
+            System.out.println("Thread " + Thread.currentThread().getName() + " wound the Transaction " + this.getId());
             rollBackOperations.forEach(operation -> operation.onVisit(levelDBWrapper));
             this.rollBackOperations.clear();
             locks.forEach(Semaphore::release);
