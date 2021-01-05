@@ -1,6 +1,5 @@
 package cn.ist.singularity.test;
 
-import cn.ist.singularity.impl.BaseLevelDBWrapper;
 import cn.ist.singularity.impl.TwoPLLevelDBWrapper;
 import cn.ist.singularity.wrapper.LevelDBWrapper;
 import cn.ist.singularity.wrapper.Operation;
@@ -9,7 +8,6 @@ import cn.ist.singularity.wrapper.Operations;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -113,7 +111,7 @@ public class SmallBank {
     /*
      * generate a list of transactions - 1
      */
-    private static List<Operations> genTransactions1() {
+    private static List<Operations> genBaseTransactions() {
         List<Operations> txns = new ArrayList<>();
         txns.add(Operations.of(
                 OperationFactory.get("1"),
@@ -139,10 +137,9 @@ public class SmallBank {
     }
 
     /*
-     * generate a list of transactions - 2
      * race with 1, but no dead lock
      */
-    private static List<Operations> genTransactions2() {
+    private static List<Operations> genRaceConditionTransactions() {
         List<Operations> txns = new ArrayList<>();
         txns.add(Operations.of(
                 OperationFactory.get("6"),
@@ -168,10 +165,9 @@ public class SmallBank {
     }
 
     /*
-     * generate a list of transactions - 3
      * It is possible to deadlock when running with 1 concurrently
      */
-    private static List<Operations> genTransactions3() {
+    private static List<Operations> genDeadLockTransactions() {
         List<Operations> txns = new ArrayList<>();
         txns.add(Operations.of(
                 OperationFactory.get("6"),
@@ -243,8 +239,8 @@ public class SmallBank {
 
         // TODO: benchmark
 
-        Job job1 = new Job("Job 1", db, genTransactions1());
-        Job job2 = new Job("Job 2", db, genTransactions2());
+        Job job1 = new Job("Job 1", db, genBaseTransactions());
+        Job job2 = new Job("Job 2", db, genRaceConditionTransactions());
 
         Instant beginStamp = Instant.now();
         Instant endStamp;
